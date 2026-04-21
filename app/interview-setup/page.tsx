@@ -14,6 +14,7 @@ import {
   User,
   Menu,
   LogOut,
+  Check,
 } from 'lucide-react';
 import { createClient } from '@/lib/supabase/client';
 import { resumeService } from '@/src/services/resumeService';
@@ -45,6 +46,9 @@ export default function InterviewSetupPage() {
   const [jdText, setJdText] = useState('');
   const [isAutoFilled, setIsAutoFilled] = useState(false);
   const [selectedRole, setSelectedRole] = useState('');
+  const [pastResumes, setPastResumes] = useState<any[]>([]);
+  const [loadingResumes, setLoadingResumes] = useState(true);
+  const [selectedPastResumeId, setSelectedPastResumeId] = useState<string | null>(null);
 
   // UI
   const [starting, setStarting] = useState(false);
@@ -64,6 +68,18 @@ export default function InterviewSetupPage() {
         });
       }
       setAuthLoading(false);
+
+      // Fetch past resumes from library
+      if (sbUser) {
+        try {
+          const resumes = await resumeService.listResumes();
+          setPastResumes(resumes || []);
+        } catch (err) {
+          console.warn('Failed to fetch resume library:', err);
+        } finally {
+          setLoadingResumes(false);
+        }
+      }
     })();
   }, [supabase]);
 
@@ -131,13 +147,14 @@ export default function InterviewSetupPage() {
   const handleStart = async () => {
     setStarting(true);
     try {
-      // Step 1: Upload resume to the backend (if user uploaded one)
-      let resumeId = null;
-      if (uploadedFile) {
+      // Step 1: Handle Resume (Prioritize Library select OR New Upload)
+      let resumeId = selectedPastResumeId;
+
+      if (!resumeId && uploadedFile) {
         try {
           resumeId = await resumeService.uploadResume(uploadedFile);
         } catch (uploadObjErr) {
-          console.warn('Resume upload failed (likely missing bucket setup), skipping upload:', uploadObjErr);
+          console.warn('Resume upload failed, skipping upload:', uploadObjErr);
         }
       }
 
@@ -266,6 +283,47 @@ export default function InterviewSetupPage() {
                   <Upload size={32} className="upload-icon" />
                   <p className="upload-text">Drag &amp; drop your resume or click to browse</p>
                   <p className="upload-note">PDF, DOC, DOCX &middot; Max 5MB</p>
+                </div>
+              )}
+
+              {/* ── Resume Library Section ── */}
+              {!loadingResumes && pastResumes.length > 0 && (
+                <div className="library-section">
+                  <div className="or-divider" style={{ margin: '20px 0' }}>
+                    <span>or select from library</span>
+                  </div>
+                  
+                  <div className="library-resumes">
+                    {pastResumes.slice(0, 4).map((res) => {
+                      const isSelected = selectedPastResumeId === res.id;
+                      const dateStr = res.created_at 
+                        ? new Date(res.created_at).toLocaleDateString() 
+                        : 'Unknown Date';
+
+                      return (
+                        <button
+                          key={res.id}
+                          className={`library-item${isSelected ? ' selected' : ''}`}
+                          onClick={() => {
+                            setSelectedPastResumeId(isSelected ? null : res.id);
+                            if (!isSelected) {
+                              setUploadedFile(null); // Clear manual upload if picking from library
+                              if (fileInputRef.current) fileInputRef.current.value = '';
+                            }
+                          }}
+                        >
+                          <div className="lib-icon-wrap">
+                            <FileText size={18} />
+                          </div>
+                          <div className="lib-info">
+                            <span className="lib-name">{res.filename || 'Resume'}</span>
+                            <span className="lib-date">Uploaded {dateStr}</span>
+                          </div>
+                          <Check size={16} className="lib-check" />
+                        </button>
+                      );
+                    })}
+                  </div>
                 </div>
               )}
             </div>

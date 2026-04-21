@@ -43,6 +43,9 @@ export const analysisService = {
         strengths: sessionDetail.feedback?.strengths || [],
         weaknesses: sessionDetail.feedback?.weaknesses || [],
         improvement_suggestions: sessionDetail.feedback?.improvement_suggestions || [],
+        started_at: sessionDetail.started_at,
+        ended_at: sessionDetail.ended_at,
+        role: sessionDetail.role,
     };
   }
 };

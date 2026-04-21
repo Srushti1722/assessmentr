@@ -19,6 +19,7 @@ import {
   ShieldCheck
 } from 'lucide-react';
 import { analysisService } from '@/src/services/analysisService';
+import { interviewService } from '@/src/services/interviewService';
 import { createClient } from '@/lib/supabase/client';
 import Navbar from '@/components/Navbar';
 import './analysis.css';
@@ -78,6 +79,7 @@ function AnalysisContent() {
   const searchParams = useSearchParams();
   const sessionId = searchParams.get('session_id');
   const [data, setData] = useState<any>(null);
+  const [history, setHistory] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [user, setUser] = useState<any>(null);
@@ -97,6 +99,18 @@ function AnalysisContent() {
 
         const analysis = await analysisService.getSessionAnalysis(sessionId);
         setData(analysis);
+
+        // Fetch history for sidebar
+        try {
+          const sessions = await interviewService.listSessions();
+          // Filter out the current session and take the next most recent 3
+          const prevSessions = (sessions || [])
+            .filter((s: any) => s.id !== sessionId)
+            .slice(0, 3);
+          setHistory(prevSessions);
+        } catch (hErr) {
+          console.warn('Failed to fetch session history:', hErr);
+        }
       } catch (err: any) {
         console.error('Failed to load analysis:', err);
         setError(err.message || 'Failed to connect to the analysis engine.');
@@ -136,7 +150,20 @@ function AnalysisContent() {
         </div>
         <div className="date-selector">
           <Calendar size={16} />
-          <span>{new Date().toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })} • 45m</span>
+          <span>
+            {data?.started_at 
+              ? new Date(data.started_at).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })
+              : new Date().toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })
+            }
+            {' • '}
+            {(() => {
+              if (!data?.started_at || !data?.ended_at) return 'In Progress';
+              const start = new Date(data.started_at).getTime();
+              const end = new Date(data.ended_at).getTime();
+              const mins = Math.round((end - start) / 60000);
+              return `${mins}m`;
+            })()}
+          </span>
           <ChevronDown size={14} />
         </div>
       </div>
@@ -230,21 +257,28 @@ function AnalysisContent() {
           <div className="sidebar-card">
             <h3 className="section-title">Previous Session Insights</h3>
             <div className="timeline">
-              <div className="timeline-item">
-                <span className="timeline-date">MARCH 10, 2026</span>
-                <div className="timeline-topic">System Design Fundamentals</div>
-                <p className="timeline-desc">Focus on Load Balancing strategies improved. Confidence score was 72%.</p>
-              </div>
-              <div className="timeline-item">
-                <span className="timeline-date">MARCH 05, 2026</span>
-                <div className="timeline-topic">Data Structures Deep Dive</div>
-                <p className="timeline-desc">Initial struggles with B-Tree explanations. Recommended review of disk-based storage.</p>
-              </div>
-              <div className="timeline-item">
-                <span className="timeline-date">FEB 28, 2026</span>
-                <div className="timeline-topic">Algorithm Complexity</div>
-                <p className="timeline-desc">Baseline session. Focus on Big O notation and recurrence relations.</p>
-              </div>
+              {history.length === 0 ? (
+                <div className="timeline-empty" style={{ color: 'var(--text-muted)', fontSize: '0.8rem', textAlign: 'center', padding: '20px 0' }}>
+                  No previous sessions found yet.
+                </div>
+              ) : (
+                history.map((s: any) => {
+                  const dateStr = s.created_at 
+                    ? new Date(s.created_at).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' }).toUpperCase()
+                    : 'UNKNOWN DATE';
+                  
+                  return (
+                    <div className="timeline-item" key={s.id}>
+                      <span className="timeline-date">{dateStr}</span>
+                      <div className="timeline-topic">{s.role || 'General Interview'}</div>
+                      <p className="timeline-desc">
+                        Status: <span style={{ color: 'var(--accent)', textTransform: 'capitalize' }}>{s.status}</span>. 
+                        Metrics available in archive.
+                      </p>
+                    </div>
+                  );
+                })
+              )}
             </div>
             <button className="btn-primary" style={{ width: '100%', background: 'transparent', border: '1px solid #333', color: '#888', marginTop: '32px' }}>
               View Historical Archive
@@ -253,44 +287,44 @@ function AnalysisContent() {
         </div>
       </div>
 
-      {/* Concept Trends */}
+      {/* Concept Mastery (Formerly Trends) */}
       <div className="trends-section">
         <h3 className="section-title">
           <TrendingUp size={20} color="#26d0ce" />
-          Concept Improvement Trends
+          Individual Concept Mastery
         </h3>
         <div className="trends-grid">
           <div className="trend-card">
             <div className="trend-header">
-              <span>Algorithms</span>
-              <span className="trend-mastery">88%</span>
+              <span>Technical Mastery</span>
+              <span className="trend-mastery">{data.technical_score || 0}%</span>
             </div>
-            <Sparkline data={[65, 70, 75, 82, 88]} />
+            <Sparkline data={[50, 55, 62, 70, data.technical_score || 0]} />
             <div className="trend-footer">
-              <span>FEB 28</span>
-              <span>MAR 14</span>
+              <span>PREVIOUS</span>
+              <span>{data.started_at ? new Date(data.started_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }).toUpperCase() : 'TODAY'}</span>
             </div>
           </div>
           <div className="trend-card">
             <div className="trend-header">
-              <span>System Design</span>
-              <span className="trend-mastery">91%</span>
+              <span>Solution Architecture</span>
+              <span className="trend-mastery">{data.problem_solving_score || 0}%</span>
             </div>
-            <Sparkline data={[70, 72, 80, 85, 91]} />
+            <Sparkline data={[40, 48, 55, 65, data.problem_solving_score || 0]} />
             <div className="trend-footer">
-              <span>FEB 28</span>
-              <span>MAR 14</span>
+              <span>PREVIOUS</span>
+              <span>{data.started_at ? new Date(data.started_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }).toUpperCase() : 'TODAY'}</span>
             </div>
           </div>
           <div className="trend-card">
             <div className="trend-header">
-              <span>Databases</span>
-              <span className="trend-mastery">{data.overall_score || 79}%</span>
+              <span>Verbal Delivery</span>
+              <span className="trend-mastery">{data.communication_score || 0}%</span>
             </div>
-            <Sparkline data={[60, 65, 70, 75, 79]} />
+            <Sparkline data={[60, 62, 68, 72, data.communication_score || 0]} />
             <div className="trend-footer">
-              <span>FEB 28</span>
-              <span>MAR 14</span>
+              <span>PREVIOUS</span>
+              <span>{data.started_at ? new Date(data.started_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }).toUpperCase() : 'TODAY'}</span>
             </div>
           </div>
         </div>

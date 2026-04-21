@@ -20,6 +20,7 @@ import {
 import { createClient } from '@/lib/supabase/client';
 import { interviewService } from '@/src/services/interviewService';
 import { ROLE_GROUPS } from '../roleData';
+import Navbar from '@/components/Navbar';
 import './mock-interview.css';
 
 // ─── LiveKit imports ──────────────────────────────────────────────────────────
@@ -529,25 +530,7 @@ function MockInterviewPageInner() {
 
     return (
         <>
-            {/* ── NAVBAR ── */}
-            <nav className="navbar">
-                <div className="nav-links">
-                    <a href="/interview-setup/mock-interview" className="nav-link active">Mock Interview</a>
-                    <a href="/dashboard" className="nav-link">Dashboard</a>
-                    <a href="/analysis" className="nav-link">Analysis</a>
-                </div>
-                <div className="nav-right">
-                    <button className="nav-icon-btn" title="Settings"><Settings size={16} /></button>
-                    <button className="nav-icon-btn" title="Help"><HelpCircle size={16} /></button>
-                    <div className="nav-profile">
-                        <div className="nav-profile-info">
-                            <span className="nav-profile-name">{userName}</span>
-                            <span className="nav-profile-loc">Remote</span>
-                        </div>
-                        <div className="nav-avatar">{userInitial}</div>
-                    </div>
-                </div>
-            </nav>
+            <Navbar />
 
             {/* ── PAGE BODY ── */}
             <div className="page">
