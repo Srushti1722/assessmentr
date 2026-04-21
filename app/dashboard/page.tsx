@@ -10,6 +10,7 @@ import {
 } from 'lucide-react';
 import { createClient } from '@/lib/supabase/client';
 import { dashboardService } from '@/src/services/dashboardService';
+import Navbar from '@/components/Navbar';
 import './dashboard.css';
 
 // ─── Data from skill/product-skill.md ────────────────────────────────────────
@@ -81,6 +82,10 @@ function KnowledgeGraph({ topics }: { topics: any[] }) {
       {EDGES.map(([fromId, toId], i) => {
         const from = topicMap[fromId];
         const to = topicMap[toId];
+        
+        // Safety check: Don't draw edges if the nodes don't exist in the data
+        if (!from || !to) return null;
+
         const isActive = hovered === fromId || hovered === toId;
         return (
           <line
@@ -224,6 +229,7 @@ export default function DashboardPage() {
   
   // Dashboard State
   const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const [dashboardData, setDashboardData] = useState<any>(null);
 
   const [userProfile, setUserProfile] = useState({
@@ -237,6 +243,7 @@ export default function DashboardPage() {
     setMounted(true);
     const loadDashboard = async () => {
       try {
+        setError(null);
         const supabase = createClient();
         const { data: { user } } = await supabase.auth.getUser();
         let userId = 'guest';
@@ -253,11 +260,12 @@ export default function DashboardPage() {
           });
         }
 
-        // Fetch data via the service (makes real API call, falls back properly)
+        // Fetch data via the service (Strict Naked Integration)
         const data = await dashboardService.getDashboardData(userId);
         setDashboardData(data);
-      } catch (err) {
+      } catch (err: any) {
         console.error('Failed to load dashboard:', err);
+        setError(err.message || 'Senior backend is unreachable or misconfigured.');
       } finally {
         setIsLoading(false);
       }
@@ -284,33 +292,7 @@ export default function DashboardPage() {
     <div className="dashboard-page">
 
       {/* ── Navbar ── */}
-      <nav className="navbar">
-        <div className="nav-logo">assessmentr</div>
-
-        <div className="nav-center">
-          <button className="nav-link" onClick={() => router.push('/interview-setup')}>
-            Mock Interview
-          </button>
-          <button className="nav-link active">
-            Dashboard
-          </button>
-          <button className="nav-link" onClick={() => router.push('/analysis')}>
-            Analysis
-          </button>
-        </div>
-
-        <div className="nav-right">
-          <button className="nav-icon-btn"><Settings size={17} /></button>
-          <button className="nav-icon-btn"><HelpCircle size={17} /></button>
-          <div className="nav-profile">
-            <div className="nav-avatar">{userProfile.initial}</div>
-            <div className="nav-profile-info">
-              <span className="nav-profile-name">{userProfile.name}</span>
-              <span className="nav-profile-sub">{userProfile.location}</span>
-            </div>
-          </div>
-        </div>
-      </nav>
+      <Navbar activePage="dashboard" />
 
       <div className="dashboard-container">
 
@@ -335,7 +317,14 @@ export default function DashboardPage() {
           <div style={{ textAlign: 'center', padding: '100px 0', color: 'var(--accent)' }}>
             <div className="section-label" style={{ opacity: 0.5, animation: 'livePulse 1.5s infinite' }}>Loading Insights...</div>
           </div>
-        ) : (
+        ) : error ? (
+          <div className="error-panel" style={{ textAlign: 'center', padding: '60px 24px', background: 'rgba(244, 63, 94, 0.05)', borderRadius: '12px', border: '1px solid rgba(244, 63, 94, 0.1)' }}>
+            <AlertTriangle size={40} color="#f43f5e" style={{ marginBottom: '16px' }} />
+            <h2 style={{ fontSize: '1.2rem', marginBottom: '8px' }}>Senior Backend Integration Error</h2>
+            <p style={{ color: '#8a9a9a', fontSize: '0.9rem', maxWidth: '500px', margin: '0 auto' }}>{error}</p>
+            <button className="btn-primary" style={{ marginTop: '24px', background: '#333', color: '#fff' }} onClick={() => window.location.reload()}>Retry Connection</button>
+          </div>
+        ) : dashboardData ? (
           <>
             <div className="main-grid">
               
@@ -460,7 +449,7 @@ export default function DashboardPage() {
               </div>
             </div>
           </>
-        )}
+        ) : null}
       </div>
 
       {/* ── Footer ── */}

@@ -404,6 +404,7 @@ function MockInterviewPageInner() {
     const searchParams = useSearchParams();
     const livekitToken = searchParams.get('livekit_token');
     const sessionId = searchParams.get('session_id');
+    const serverUrlParam = searchParams.get('server_url');
 
 
     // ── Session state ─────────────────────────────────────────────────────
@@ -481,7 +482,7 @@ function MockInterviewPageInner() {
             // Use the LiveKit token passed from the setup page
             setConnectionDetails({
                 participantToken: livekitToken!,
-                serverUrl: process.env.NEXT_PUBLIC_LIVEKIT_URL || 'wss://thinkloud-9x8bbl7h.livekit.cloud',
+                serverUrl: serverUrlParam || process.env.NEXT_PUBLIC_LIVEKIT_URL || 'wss://thinkloud-9x8bbl7h.livekit.cloud',
                 roomName: '',
                 participantName: '',
             });
@@ -503,9 +504,16 @@ function MockInterviewPageInner() {
         setAgentState(state);
     }, []);
 
-    const handleEndSession = () => {
+    const handleEndSession = async () => {
+        if (sessionId) {
+            try {
+                await interviewService.endSession(sessionId);
+            } catch (e) {
+                console.error('Failed to notify backend to end session:', e);
+            }
+        }
         setConnectionDetails(null); // unmounts room → disconnects
-        router.push(`/analysis`);
+        router.push(`/analysis${sessionId ? `?session_id=${sessionId}` : ''}`);
     };
 
     // ── Timer ─────────────────────────────────────────────────────────────

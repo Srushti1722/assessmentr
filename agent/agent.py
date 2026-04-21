@@ -7,7 +7,8 @@ from livekit.agents import (
     Agent,
     AgentSession,
     JobContext,
-    room_io,
+    WorkerOptions,
+    cli,
 )
 from livekit.plugins import google, silero
 from mem0 import MemoryClient
@@ -81,21 +82,31 @@ async def entrypoint(ctx: JobContext):
     memories = fetch_memories(user_id)
     instructions = build_instructions(memories)
 
-    session = AgentSession(
-        llm=google.LLM(model="gemini-2.0-flash-lite"),
-        tts=google.TTS(),
-        vad=silero.VAD.load(),
-    )
+    try:
+        # Reverting to the simpler AgentSession pattern for compatibility
+        # Using a more generic model name to avoid 404 errors
+        session = AgentSession(
+            llm=google.LLM(model="gemini-1.5-flash"),
+            tts=google.TTS(),
+            vad=silero.VAD.load(),
+        )
 
-    @session.on("user_speech_finished")
-    def on_user_speech_finished(event):
-        # We could save memory here or on exit
-        pass
+        @session.on("user_speech_finished")
+        def on_user_speech_finished(event):
+            # Future: save transcript to memory
+            pass
 
-    await session.start(agent=Agent(instructions=instructions), room=ctx.room)
+        # Ensuring the session starts with the correct instructions
+        await session.start(agent=Agent(instructions=instructions), room=ctx.room)
+        
+        # Give it a second to stabilize then say hello
+        await asyncio.sleep(1)
+        session.push_speech("Hello! I am Assessmentr, your interviewer for today. Shall we begin?")
+        
+    except Exception as e:
+        logger.error(f"Agent setup failed: {e}")
 
 if __name__ == "__main__":
-    from livekit.agents import cli, WorkerOptions
     cli.run_app(
         WorkerOptions(
             entrypoint_fnc=entrypoint,

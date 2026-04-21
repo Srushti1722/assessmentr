@@ -18,6 +18,7 @@ import {
 import { createClient } from '@/lib/supabase/client';
 import { resumeService } from '@/src/services/resumeService';
 import { interviewService } from '@/src/services/interviewService';
+import Navbar from '@/components/Navbar';
 import { ROLE_JDS, ROLE_GROUPS } from './roleData';
 import './interview-setup.css';
 
@@ -137,22 +138,45 @@ export default function InterviewSetupPage() {
           resumeId = await resumeService.uploadResume(uploadedFile);
         } catch (uploadObjErr) {
           console.warn('Resume upload failed (likely missing bucket setup), skipping upload:', uploadObjErr);
-          // We can gracefully proceed without a resume ID since the LiveKit Agent uses mem0.
         }
       }
 
-      // Step 2: Create the interview session on the backend
-      const { session, livekit_token } = await interviewService.createSession({
-        resumeId: (resumeId as null | undefined),
+      // Step 2: Create a Job Target profile (Links Resume + JD + Role)
+      // This is a MISSION CRITICAL step for the Senior's backend
+      let jobTargetId = null;
+      if (resumeId) {
+        try {
+          console.log('Creating job target profile for role:', selectedRole);
+          const jobTargetData = await resumeService.createJobTarget(
+            selectedRole || 'software-engineer', // jobTitle
+            'Assessmentr',                        // company (placeholder)
+            jdText                               // jobDescription
+          );
+          jobTargetId = jobTargetData.profileId || jobTargetData.job_target_id || jobTargetData.id;
+        } catch (jtErr) {
+          console.warn('Job target creation failed, proceeding with basic session:', jtErr);
+        }
+      }
+
+      // Step 3: Create the interview session (Metadata + Token) directly from backend link
+      console.log('Initiating interview session via senior backend link...');
+      const sessionData = await interviewService.createSession({
+        resumeId: (resumeId as string | null),
+        jobTargetId: (jobTargetId as string | null),
+        difficulty: 'medium',
       });
 
-      // Step 3: Go to the interview page, passing the session ID and LiveKit token
+      const sessionId = sessionData.session.id;
+      const participantToken = sessionData.livekit_token.token;
+      const serverUrl = sessionData.livekit_token.server_url;
+
+      // Step 4: Go to the interview page
       router.push(
-        `/interview-setup/mock-interview?session_id=${session.id}&livekit_token=${livekit_token.token}`
+        `/interview-setup/mock-interview?session_id=${sessionId}&livekit_token=${participantToken}&server_url=${serverUrl || ''}`
       );
     } catch (error) {
       console.error('Setup failed:', error);
-      alert('Something went wrong. Please try again.');
+      alert(error instanceof Error ? error.message : 'Something went wrong. Please try again.');
       setStarting(false);
     }
   };
@@ -176,109 +200,7 @@ export default function InterviewSetupPage() {
       <div className="page-glow" aria-hidden="true" />
 
       {/* ── NAVBAR ── */}
-      <nav className="navbar">
-        <div className="nav-container">
-          <a href="/" className="nav-logo">assessmentr</a>
-          {/* Left: nav links — no logo */}
-          <ul className="nav-links">
-
-            <li><a href="/interview-setup" className="active">Mock Interview</a></li>
-          </ul>
-
-          {/* Right side */}
-          <div className="nav-right">
-
-            <button className="nav-icon-btn" aria-label="Settings">
-              <Settings size={16} />
-            </button>
-            <button className="nav-icon-btn" aria-label="Help">
-              <HelpCircle size={16} />
-            </button>
-
-            {/* User chip — name + location on left, avatar on right */}
-            {user && (
-              <div
-                className="user-chip"
-                ref={userChipRef}
-                onClick={() => setDropdownOpen(o => !o)}
-                role="button"
-                aria-expanded={dropdownOpen}
-              >
-                <div className="user-info">
-                  <span className="user-name">{user.name}</span>
-                  <span className="user-location">Bengaluru</span>
-                </div>
-                <div className="user-avatar">
-                  <User size={16} />
-                </div>
-
-                {/* Dropdown */}
-                {dropdownOpen && (
-                  <div
-                    className="user-dropdown-menu"
-                    style={{
-                      position: 'absolute', top: 'calc(100% + 10px)', right: 0,
-                      background: 'var(--bg-card)', border: '1px solid var(--bg-card-border)',
-                      borderRadius: 'var(--radius-md)', minWidth: 170,
-                      boxShadow: '0 12px 36px rgba(0,0,0,0.4)', zIndex: 200, overflow: 'hidden',
-                      animation: 'fadeUp 0.15s ease both',
-                    }}
-                  >
-                    <div style={{ padding: '10px 16px', borderBottom: '1px solid var(--divider)' }}>
-                      <div style={{ fontSize: '0.82rem', fontWeight: 600, color: 'var(--text-primary)' }}>
-                        {user.name}
-                      </div>
-                      <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)', marginTop: 2 }}>
-                        {user.email}
-                      </div>
-                    </div>
-                    <button
-                      onClick={handleSignOut}
-                      style={{
-                        display: 'flex', alignItems: 'center', gap: 10,
-                        padding: '12px 16px', width: '100%', textAlign: 'left',
-                        background: 'none', border: 'none', cursor: 'pointer',
-                        fontSize: '0.85rem', color: '#f87171', fontFamily: 'var(--font-body)',
-                        transition: 'background 0.15s',
-                      }}
-                      onMouseEnter={e => (e.currentTarget.style.background = 'rgba(248,113,113,0.08)')}
-                      onMouseLeave={e => (e.currentTarget.style.background = 'none')}
-                    >
-                      <LogOut size={14} />
-                      Sign Out
-                    </button>
-                  </div>
-                )}
-              </div>
-            )}
-
-            {/* Sign in if NOT logged in */}
-            {!user && (
-              <a
-                href="/auth"
-                style={{
-                  display: 'inline-flex', alignItems: 'center', gap: 8,
-                  background: 'linear-gradient(45deg,#81ecff,#00e3fd)',
-                  color: 'var(--text-on-accent)',
-                  fontFamily: 'var(--font-display)', fontWeight: 700,
-                  fontSize: '0.85rem', padding: '9px 20px',
-                  borderRadius: 'var(--radius-xl)',
-                  boxShadow: '0 4px 16px rgba(129,236,255,0.18)',
-                  transition: 'opacity 0.2s, transform 0.2s',
-                }}
-              >
-                Join the Beta
-              </a>
-            )}
-
-            {/* Hamburger — mobile only */}
-            <button className="hamburger" aria-label="Open menu">
-              <Menu size={20} />
-            </button>
-
-          </div>
-        </div>
-      </nav>
+      <Navbar activePage="interview" />
 
       {/* ── MAIN ── */}
       <main className="setup-wrapper">

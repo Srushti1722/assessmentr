@@ -1,25 +1,36 @@
 import { authService } from './authService';
-import { createClient } from '@/lib/supabase/client';
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL;
 
 export const resumeService = {
-    // Upload a resume file directly via Supabase Storage (bypassing backend)
+    // Upload a resume file to the backend
     async uploadResume(file) {
-        const supabase = createClient();
-        const { data: { user } } = await supabase.auth.getUser();
-        if (!user) throw new Error('Not authenticated');
+        const token = authService.getToken();
+        if (!token) {
+            console.warn('[resumeService] No token found, redirecting to login...');
+            window.location.href = '/auth';
+            throw new Error('Please sign in to upload your resume.');
+        }
 
-        const path = `resumes/${user.email}/${Date.now()}_${file.name}`;
-        
-        const { data, error } = await supabase.storage
-            .from('resumes')
-            .upload(path, file, { upsert: true });
+        const formData = new FormData();
+        formData.append('file', file);
 
-        if (error) throw error;
-        
-        // Return the storage path for now as a makeshift ID
-        return data.path;
+        const res = await fetch(`${API_URL}/resume/upload`, {
+            method: 'POST',
+            headers: {
+                'Authorization': `Bearer ${token}`,
+            },
+            body: formData,
+            // Do NOT set Content-Type header; fetch sets it automatically with boundary for FormData
+        });
+
+        if (!res.ok) {
+            const errorBody = await res.json().catch(() => ({ detail: 'Upload failed' }));
+            throw new Error(errorBody.detail || 'Upload failed');
+        }
+
+        const data = await res.json();
+        return data.resume_id;
     },
 
     // Poll every 2 seconds until Gemini finishes parsing the resume
@@ -62,7 +73,7 @@ export const resumeService = {
         return await res.json();
     },
 
-    // Create a new job target profile
+    // Create a new job target profile (Match Swagger Screenshot)
     async createJobTarget(jobTitle, company = null, jobDescription = null) {
         const token = authService.getToken();
         const res = await fetch(`${API_URL}/resume/job-target`, {

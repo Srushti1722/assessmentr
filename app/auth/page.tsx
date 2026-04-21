@@ -32,8 +32,12 @@ export default function AuthPage() {
     }
     else {
       // Also get the backend Bearer token
-      await authService.loginToBackend(email, password);
-      window.location.href = '/interview-setup';
+      const token = await authService.loginToBackend(email, password);
+      if (token) {
+        window.location.href = '/interview-setup';
+      } else {
+        setError('Connected to Identity (Supabase), but failed to sync with Backend. Please try again.');
+      }
     }
     setLoading(false);
   };
@@ -55,7 +59,13 @@ export default function AuthPage() {
     if (error) {
       setError(error.message);
     } else {
-      window.location.href = '/interview-setup';
+      // Also register and login to the backend
+      const token = await authService.loginToBackend(email, password);
+      if (token) {
+        window.location.href = '/interview-setup';
+      } else {
+        setError('Account created (Supabase), but failed to sync with Backend. Please try signing in.');
+      }
     }
     setLoading(false);
   };

@@ -20,6 +20,9 @@ The core of assessmentr is a **100% voice-based** CS technical interview prep pl
 
 ## How to Use This Skill
 
+> [!IMPORTANT]
+> **Mandatory First Step:** Before starting any task, check the **frontend integration status** and verify all other relevant specialist files listed below. Ensure you understand the current state of the backend API connections and the directory structure.
+
 This master file points to 7 specialist files. **Always read the relevant file(s) before writing any code.**
 
 ### 1. `Design-skill.md` — Read this for:

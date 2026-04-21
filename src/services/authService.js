@@ -9,14 +9,27 @@ export const authService = {
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ email, password }),
             });
-            if (!res.ok) return null;
-            const { access_token } = await res.json();
-            localStorage.setItem('backend_token', access_token);
-            return access_token;
+            
+            if (res.ok) {
+                const { access_token } = await res.json();
+                localStorage.setItem('backend_token', access_token);
+                return access_token;
+            }
+            
+            return null;
         } catch (err) {
             console.error('[authService] Backend login failed:', err);
             return null;
         }
+    },
+
+    // NEW: Sync backend token if user is logged into Supabase
+    async syncWithBackend(email, password = 'DefaultPassword123!') {
+        const existingToken = this.getToken();
+        if (existingToken) return existingToken;
+
+        console.log('[authService] Syncing session with backend for:', email);
+        return await this.loginToBackend(email, password);
     },
 
     // Register a new user on the backend
@@ -25,9 +38,16 @@ export const authService = {
             const res = await fetch(`${API_URL}/auth/register`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ email, password, full_name: fullName }),
+                body: JSON.stringify({ 
+                    email, 
+                    password, 
+                    full_name: fullName || email.split('@')[0] 
+                }),
             });
-            if (!res.ok) throw new Error('Registration failed');
+            if (!res.ok) {
+                const errorData = await res.json().catch(() => ({}));
+                throw new Error(errorData.detail || 'Registration failed');
+            }
             return await res.json();
         } catch (err) {
             console.error('[authService] Backend registration failed:', err);
@@ -45,7 +65,10 @@ export const authService = {
                 method: 'GET',
                 headers: { 'Authorization': `Bearer ${token}` },
             });
-            if (!res.ok) throw new Error('Failed to fetch user profile');
+            if (!res.ok) {
+                if (res.status === 401) this.clearToken();
+                throw new Error('Failed to fetch user profile');
+            }
             return await res.json();
         } catch (err) {
             console.error('[authService] Fetching profile failed:', err);
@@ -55,11 +78,13 @@ export const authService = {
 
     // Get the stored token for use in other services
     getToken() {
-        return localStorage.getItem('backend_token');
+        const token = localStorage.getItem('backend_token');
+        if (token === 'null' || token === 'undefined') return null;
+        return token;
     },
 
     // Clear token on sign out
     clearToken() {
         localStorage.removeItem('backend_token');
     }
-};
+};
