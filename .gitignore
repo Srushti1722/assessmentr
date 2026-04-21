@@ -1,0 +1,113 @@
+# -----------------------------------------------------------------------------
+# Node.js / Next.js
+# -----------------------------------------------------------------------------
+# dependencies
+node_modules/
+.pnp/
+.pnp.js
+
+# testing
+coverage/
+
+# next.js
+.next/
+out/
+build/
+
+# debug logs
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+.pnpm-debug.log*
+
+# local env files
+.env*.local
+.env
+
+# vercel
+.vercel/
+
+# typescript
+*.tsbuildinfo
+next-env.d.ts
+
+# -----------------------------------------------------------------------------
+# Python (Agent)
+# -----------------------------------------------------------------------------
+# Byte-compiled / optimized / DLL files
+__pycache__/
+*.py[cod]
+*$py.class
+
+# C extensions
+*.so
+
+# Distribution / packaging
+.Python
+env/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+
+# Installer logs
+pip-log.txt
+pip-delete-this-directory.txt
+
+# Unit test / coverage reports
+htmlcov/
+.tox/
+.nox/
+.coverage
+.coverage.*
+.cache
+nosetests.xml
+coverage.xml
+*.cover
+*.py,cover
+.hypothesis/
+.pytest_cache/
+pytest_cache/
+
+# Environments
+.venv/
+venv/
+ENV/
+env.bak/
+venv.bak/
+
+# -----------------------------------------------------------------------------
+# OS & Editors
+# -----------------------------------------------------------------------------
+# OS generated files
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+
+# Editors
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# -----------------------------------------------------------------------------
+# Archives & General Logs
+# -----------------------------------------------------------------------------
+*.log
+*.zip
+*.tar.gz
+*.rar

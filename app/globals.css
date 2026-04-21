@@ -1,0 +1,83 @@
+:root {
+  /* Background */
+  --bg-base:        #0a0e14;
+  --bg-surface:     #0f141a;
+  --bg-card:        #151a21;
+  --bg-card-hover:  #1b2028;
+  --bg-card-border: #262c36;
+  --bg-input:       #0e1219;
+  --bg-input-focus: #121820;
+
+  /* Accent */
+  --accent:         #81ecff;
+  --accent-dim:     #00d4ec;
+  --accent-hover:   #a5f3ff;
+  --accent-subtle:  rgba(129, 236, 255, 0.08);
+  --accent-glow:    rgba(129, 236, 255, 0.18);
+  --accent-glow-lg: rgba(129, 236, 255, 0.30);
+
+  /* Text */
+  --text-primary:   #f1f3fc;
+  --text-secondary: #a8abb3;
+  --text-muted:     #44484f;
+  --text-on-accent: #003840;
+
+  /* Borders / misc */
+  --border-color:   #262c36;
+  --divider:        rgba(255, 255, 255, 0.06);
+  --scrollbar-thumb: #262c36;
+
+  /* Typography */
+  --font-display: 'Manrope', sans-serif;
+  --font-body:    'Inter', sans-serif;
+
+  /* Radius */
+  --radius-sm:   6px;
+  --radius-md:   10px;
+  --radius-lg:   18px;
+  --radius-xl:   1rem;
+  --radius-full: 9999px;
+
+  /* Spacing */
+  --space-2: 8px;
+  --space-3: 12px;
+  --space-4: 16px;
+  --space-5: 20px;
+  --space-6: 24px;
+  --space-8: 32px;
+  --space-10: 40px;
+  --space-12: 48px;
+  --space-16: 64px;
+  --space-24: 96px;
+}
+
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+body {
+  background-color: var(--bg-base);
+  color: var(--text-primary);
+  font-family: var(--font-body);
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  position: relative;
+  overflow-x: hidden;
+}
+
+/* Subtle radial glow in background like image */
+body::before {
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: 80vw;
+  height: 80vh;
+  background: radial-gradient(circle, rgba(59, 218, 255, 0.03) 0%, transparent 60%);
+  pointer-events: none;
+  z-index: 0;
+}
