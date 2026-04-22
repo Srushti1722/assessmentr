@@ -530,7 +530,7 @@ function MockInterviewPageInner() {
 
     return (
         <>
-            <Navbar />
+            <Navbar activePage="interview" />
 
             {/* ── PAGE BODY ── */}
             <div className="page">

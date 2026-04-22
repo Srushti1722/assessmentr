@@ -73,8 +73,13 @@ export const resumeService = {
         return await res.json();
     },
 
-    // Create a new job target profile (Match Swagger Screenshot)
-    async createJobTarget(jobTitle, company = null, jobDescription = null) {
+    /**
+     * Create a new job target profile (Match Swagger Screenshot)
+     * @param {string} jobTitle
+     * @param {string|null} [company]
+     * @param {string|null} [jobDescription]
+     */
+    async createJobTarget(jobTitle, company = '', jobDescription = '') {
         const token = authService.getToken();
         const res = await fetch(`${API_URL}/resume/job-target`, {
             method: 'POST',

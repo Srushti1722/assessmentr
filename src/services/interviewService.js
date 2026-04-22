@@ -5,11 +5,16 @@ const API_URL = process.env.NEXT_PUBLIC_API_URL;
 export const interviewService = {
     /**
      * Step 1: Create a new interview session on the senior backend.
-     * Expects: InterviewStartResponse { session, livekit_token }
+     * @param {Object} params
+     * @param {string|null} [params.resumeId]
+     * @param {string|null} [params.jobTargetId]
+     * @param {string} [params.difficulty]
+     * @param {number} [params.durationMinutes]
+     * @param {string[]} [params.focusTopics]
      */
     async createSession({ 
-        resumeId = null, 
-        jobTargetId = null,
+        resumeId = undefined, 
+        jobTargetId = undefined,
         difficulty = 'medium', 
         durationMinutes = 30, 
         focusTopics = [] 
