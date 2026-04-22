@@ -23,6 +23,87 @@ import Navbar from '@/components/Navbar';
 import { ROLE_JDS, ROLE_GROUPS } from './roleData';
 import './interview-setup.css';
 
+// ─── Mic Visualizer Component ───────────────────────────────────────────────
+function MicVisualizer() {
+  const [volume, setVolume] = useState(0);
+  const [error, setError] = useState<string | null>(null);
+  const audioContextRef = useRef<AudioContext | null>(null);
+  const analyserRef = useRef<AnalyserNode | null>(null);
+  const streamRef = useRef<MediaStream | null>(null);
+  const animationRef = useRef<number>();
+
+  useEffect(() => {
+    async function setupMic() {
+      try {
+        const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+        streamRef.current = stream;
+        
+        const AudioContextClass = (window.AudioContext || (window as any).webkitAudioContext);
+        const audioContext = new AudioContextClass();
+        audioContextRef.current = audioContext;
+        
+        const analyser = audioContext.createAnalyser();
+        analyser.fftSize = 256;
+        analyserRef.current = analyser;
+        
+        const source = audioContext.createMediaStreamSource(stream);
+        source.connect(analyser);
+
+        const bufferLength = analyser.frequencyBinCount;
+        const dataArray = new Uint8Array(bufferLength);
+
+        const updateVolume = () => {
+          if (!analyserRef.current) return;
+          analyserRef.current.getByteFrequencyData(dataArray);
+          
+          let sum = 0;
+          for (let i = 0; i < bufferLength; i++) {
+            sum += dataArray[i];
+          }
+          const average = sum / bufferLength;
+          setVolume(Math.min(100, (average / 128) * 100));
+          animationRef.current = requestAnimationFrame(updateVolume);
+        };
+        
+        updateVolume();
+      } catch (err: any) {
+        console.warn('Mic access denied or error:', err);
+        setError(err.name === 'NotAllowedError' ? 'Access Denied' : 'Mic Not Found');
+      }
+    }
+
+    setupMic();
+
+    return () => {
+      if (animationRef.current) cancelAnimationFrame(animationRef.current);
+      if (streamRef.current) streamRef.current.getTracks().forEach(track => track.stop());
+      if (audioContextRef.current) audioContextRef.current.close();
+    };
+  }, []);
+
+  return (
+    <div className="mic-check-container">
+      <div className="mic-check-header">
+        <div className={`status-dot ${error ? 'error' : 'active'}`} />
+        <span className="mic-check-title">
+          {error ? `Audio Error: ${error}` : 'Microphone Sensitivity'}
+        </span>
+      </div>
+      <div className="mic-bar-bg">
+        <div 
+          className="mic-bar-fill" 
+          style={{ width: `${error ? 0 : volume}%` }} 
+        />
+      </div>
+      {!error && (
+        <div className="mic-check-note">
+          {volume > 1 ? 'Audio detected' : 'Speak to test levels'}
+        </div>
+      )}
+    </div>
+  );
+}
+
 // ─── Types ───────────────────────────────────────────────────────────────────
 interface UserMeta {
   name: string;
@@ -377,11 +458,12 @@ export default function InterviewSetupPage() {
 
             {/* ── CTA ── */}
             <div className="cta-section">
+              <MicVisualizer />
               <button
                 id="start-interview-btn"
-                className="btn-start"
-                onClick={handleStart}
-                disabled={starting}
+                 className="btn-start"
+                 onClick={handleStart}
+                 disabled={starting}
               >
                 <Mic size={18} />
                 {starting ? 'Starting...' : 'Start Mock Interview'}

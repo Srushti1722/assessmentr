@@ -866,3 +866,74 @@ button {
   color: var(--text-muted);
   font-size: 0.82rem;
 }
+/* --- Mic Check Visualizer --- */
+.mic-check-container {
+  background: rgba(255, 255, 255, 0.03);
+  backdrop-filter: blur(10px);
+  border: 1px solid rgba(255, 255, 255, 0.05);
+  border-radius: 16px;
+  padding: 16px;
+  margin-bottom: 24px;
+  width: 100%;
+}
+
+.mic-check-header {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 12px;
+}
+
+.status-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+}
+
+.status-dot.active {
+  background: #26d0ce;
+  box-shadow: 0 0 10px rgba(38, 208, 206, 0.5);
+  animation: livePulse 2s infinite;
+}
+
+.status-dot.error {
+  background: #f43f5e;
+  box-shadow: 0 0 10px rgba(244, 63, 94, 0.5);
+}
+
+.mic-check-title {
+  font-size: 0.75rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  color: var(--text-muted);
+}
+
+.mic-bar-bg {
+  height: 6px;
+  background: rgba(255, 255, 255, 0.05);
+  border-radius: 3px;
+  overflow: hidden;
+  margin-bottom: 10px;
+}
+
+.mic-bar-fill {
+  height: 100%;
+  background: linear-gradient(90deg, #1a2a6c, #26d0ce);
+  transition: width 0.1s ease-out;
+  box-shadow: 0 0 15px rgba(38, 208, 206, 0.3);
+}
+
+.mic-check-note {
+  font-size: 0.7rem;
+  color: var(--text-muted);
+  font-style: italic;
+  text-align: right;
+}
+
+@keyframes livePulse {
+  0% { transform: scale(1); opacity: 1; }
+  50% { transform: scale(1.4); opacity: 0.6; }
+  100% { transform: scale(1); opacity: 1; }
+}
+
