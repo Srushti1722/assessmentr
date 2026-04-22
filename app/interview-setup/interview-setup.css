@@ -540,11 +540,13 @@ button {
 
 .role-select option {
   background: #151a21;
+  color: #ffffff;
 }
 
 .role-select optgroup {
   background: #0e1219;
-  color: var(--text-muted);
+  color: #81ecff; /* Cyan accent for group headers */
+  font-weight: 700;
 }
 
 .chevron-icon {
