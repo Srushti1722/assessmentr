@@ -156,6 +156,8 @@ function SessionView({
     setManualText,
     onEndSession,
     onAgentStateChange,
+    isEnding,
+    sessionId,
 }: {
     userName: string;
     userInitial: string;
@@ -169,6 +171,8 @@ function SessionView({
     setManualText: (v: string) => void;
     onEndSession: () => void;
     onAgentStateChange: (s: VoiceAgentState) => void;
+    isEnding: boolean;
+    sessionId: string | null;
 }) {
     const room = useRoomContext();
     const { chatMessages, send: sendChat } = useChat();
@@ -185,9 +189,15 @@ function SessionView({
             setTranscripts(prev => {
                 const map = new Map(prev.map(t => [t.id, t]));
                 for (const segment of segments) {
+                    if (segment.final && sessionId) {
+                        // Persist final transcript segments to the senior backend for analysis
+                        interviewService.sendMessage(sessionId, segment.text).catch(err => {
+                            console.warn('[Sync] Failed to persist transcript segment:', err);
+                        });
+                    }
                     map.set(segment.id, {
                         id: segment.id,
-                        timestamp: Date.now(), // Fallback timestamp since firstReceivedTime isn't in core Segment
+                        timestamp: Date.now(),
                         from: { isLocal: participant?.isLocal === true },
                         message: segment.text,
                         final: segment.final
@@ -199,6 +209,13 @@ function SessionView({
         room.on(RoomEvent.TranscriptionReceived, handleTranscription);
         return () => { room.off(RoomEvent.TranscriptionReceived, handleTranscription); };
     }, [room]);
+
+    // ─── Sync Microphone State with LiveKit ──────────────────────────────────
+    useEffect(() => {
+        if (room?.localParticipant) {
+            room.localParticipant.setMicrophoneEnabled(isMicActive);
+        }
+    }, [isMicActive, room]);
 
     // Combine manually typed chat messages and voice transcripts
     const messages = [...chatMessages, ...transcripts].sort((a, b) => a.timestamp - b.timestamp);
@@ -246,6 +263,7 @@ function SessionView({
                     : 'Mic is muted';
 
     const handleEndConfirm = async () => {
+        if (isEnding) return; // prevent double-click
         await room.disconnect(); // cleanly disconnect from LiveKit room
         onEndSession();
     };
@@ -256,6 +274,10 @@ function SessionView({
         // Send as a chat message through the LiveKit session
         try {
             await sendChat(trimmed);
+            if (sessionId) {
+                // Also persist manual text to the senior backend for analysis
+                await interviewService.sendMessage(sessionId, trimmed);
+            }
         } catch (err) {
             console.error(err);
         }
@@ -285,9 +307,23 @@ function SessionView({
                                 <span>{mm}:{ss}</span>
                             </div>
                         </div>
-                        <button className="btn-end" onClick={handleEndConfirm}>
-                            <PhoneOff size={15} />
-                            END SESSION
+                        <button
+                            className={`btn-end${isEnding ? ' btn-end--ending' : ''}`}
+                            onClick={handleEndConfirm}
+                            disabled={isEnding}
+                            title={isEnding ? 'Generating AI analysis...' : 'End Session'}
+                        >
+                            {isEnding ? (
+                                <>
+                                    <span className="btn-end-spinner" />
+                                    ANALYZING...
+                                </>
+                            ) : (
+                                <>
+                                    <PhoneOff size={15} />
+                                    END SESSION
+                                </>
+                            )}
                         </button>
                     </div>
                 </div>
@@ -413,6 +449,8 @@ function MockInterviewPageInner() {
     const [isStarted, setIsStarted] = useState(false);
     const [isConnecting, setIsConnecting] = useState(false);
     const [showEndModal, setShowEndModal] = useState(false);
+    const [isEnding, setIsEnding] = useState(false);
+    const [feedbackFailed, setFeedbackFailed] = useState(false);
 
     // ── UI state ──────────────────────────────────────────────────────────
     const [isMicActive, setIsMicActive] = useState(true);
@@ -506,14 +544,29 @@ function MockInterviewPageInner() {
     }, []);
 
     const handleEndSession = async () => {
+        setIsEnding(true);
+        setFeedbackFailed(false);
+
+        // Disconnect from LiveKit first
+        setConnectionDetails(null);
+
         if (sessionId) {
             try {
-                await interviewService.endSession(sessionId);
+                // This call takes 3–6s: Gemini generates feedback synchronously
+                const result = await interviewService.endSession(sessionId);
+                if (result?.feedback_generated === false) {
+                    // Gemini failed silently — show retry option
+                    setFeedbackFailed(true);
+                    setIsEnding(false);
+                    return;
+                }
             } catch (e) {
-                console.error('Failed to notify backend to end session:', e);
+                console.error('Failed to end session:', e);
+                // Still navigate — let the analysis page handle missing feedback
             }
         }
-        setConnectionDetails(null); // unmounts room → disconnects
+
+        setIsEnding(false);
         router.push(`/analysis${sessionId ? `?session_id=${sessionId}` : ''}`);
     };
 
@@ -596,6 +649,8 @@ function MockInterviewPageInner() {
                             setManualText={setManualText}
                             onEndSession={handleEndSession}
                             onAgentStateChange={handleAgentStateChange}
+                            isEnding={isEnding}
+                            sessionId={sessionId}
                         />
                     </LiveKitRoom>
                 ) : (
@@ -606,23 +661,35 @@ function MockInterviewPageInner() {
                 )}
             </div>
 
-            {/* ── End Session Modal ── */}
-            {showEndModal && (
-                <div className="modal-overlay">
-                    <div className="modal">
-                        <h2 className="modal-title">End Session?</h2>
-                        <p className="modal-text">
-                            Your session will be saved and you&apos;ll be redirected to your analysis.
+            {/* ── Generating Analysis Overlay (shown during 3–6s Gemini call) ── */}
+            {isEnding && (
+                <div className="generating-overlay">
+                    <div className="generating-card">
+                        <div className="generating-spinner" />
+                        <h2 className="generating-title">Generating Your Analysis</h2>
+                        <p className="generating-desc">
+                            Our AI is reviewing your interview performance.<br />
+                            This takes about 3–6 seconds — please don&apos;t close the page.
                         </p>
-                        <div className="modal-actions">
-                            <button className="btn-secondary" onClick={() => setShowEndModal(false)}>
-                                Cancel
-                            </button>
-                            <button className="btn-end-confirm" onClick={handleEndSession}>
-                                End Session
-                            </button>
+                        <div className="generating-dots">
+                            <div className="gdot" />
+                            <div className="gdot" />
+                            <div className="gdot" />
                         </div>
                     </div>
+                </div>
+            )}
+
+            {/* ── Feedback failed retry banner ── */}
+            {feedbackFailed && (
+                <div className="retry-banner">
+                    <span>⚠️ AI analysis could not be generated automatically.</span>
+                    <button
+                        className="retry-btn"
+                        onClick={() => router.push(`/analysis${sessionId ? `?session_id=${sessionId}&retry=1` : ''}`)}
+                    >
+                        Go to Analysis &amp; Retry
+                    </button>
                 </div>
             )}
         </>

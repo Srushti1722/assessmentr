@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useEffect, useState, Suspense } from 'react';
+import React, { useEffect, useState, Suspense, useCallback } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
 import { 
   CheckCircle, 
@@ -16,7 +16,8 @@ import {
   ChevronDown,
   Activity,
   Zap,
-  ShieldCheck
+  ShieldCheck,
+  RefreshCw
 } from 'lucide-react';
 import { analysisService } from '@/src/services/analysisService';
 import { interviewService } from '@/src/services/interviewService';
@@ -78,11 +79,36 @@ function Sparkline({ data }: { data: number[] }) {
 function AnalysisContent() {
   const searchParams = useSearchParams();
   const sessionId = searchParams.get('session_id');
+  const shouldAutoRetry = searchParams.get('retry') === '1';
+
   const [data, setData] = useState<any>(null);
   const [history, setHistory] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [user, setUser] = useState<any>(null);
+  const [isRegenerating, setIsRegenerating] = useState(false);
+  const [regenError, setRegenError] = useState<string | null>(null);
+  const [retryCount, setRetryCount] = useState(0);
+
+  const handleRegenerate = useCallback(async () => {
+    if (!sessionId || isRegenerating) return;
+    setIsRegenerating(true);
+    setRegenError(null);
+    try {
+      const newFeedback = await interviewService.regenerateFeedback(sessionId);
+      setData((prev: any) => ({ ...prev, ...newFeedback }));
+      setRetryCount(0); // reset on success
+    } catch (err: any) {
+      setRetryCount(c => c + 1);
+      const base = err.message || 'AI analysis temporarily unavailable.';
+      const suffix = retryCount >= 2
+        ? ' Gemini may be overloaded. Try again in a few minutes.'
+        : ' Try again in a moment.';
+      setRegenError(base + (retryCount > 0 ? suffix : ''));
+    } finally {
+      setIsRegenerating(false);
+    }
+  }, [sessionId, isRegenerating, retryCount]);
 
   useEffect(() => {
     async function loadData() {
@@ -103,7 +129,6 @@ function AnalysisContent() {
         // Fetch history for sidebar
         try {
           const sessions = await interviewService.listSessions();
-          // Filter out the current session and take the next most recent 3
           const prevSessions = (sessions || [])
             .filter((s: any) => s.id !== sessionId)
             .slice(0, 3);
@@ -120,6 +145,18 @@ function AnalysisContent() {
     }
     loadData();
   }, [sessionId]);
+
+  // Auto-trigger regeneration when navigated here with retry=1
+  useEffect(() => {
+    if (shouldAutoRetry && !loading && data) {
+      handleRegenerate();
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [shouldAutoRetry, loading]);
+
+  // Derive whether feedback is genuinely missing (session loaded but no AI output)
+  const feedbackMissing = !loading && data && !isRegenerating &&
+    !(data.overall_score) && !(data.strengths?.length) && !(data.summary);
 
   if (loading) return (
     <div className="loading-state">
@@ -142,31 +179,94 @@ function AnalysisContent() {
 
   return (
     <div className="analysis-content">
+
+      {/* Regenerating overlay */}
+      {isRegenerating && (
+        <div className="regen-overlay">
+          <div className="regen-card">
+            <div className="regen-spinner" />
+            <h2 className="regen-title">Re-running AI Analysis</h2>
+            <p className="regen-desc">Gemini is reviewing your full interview transcript.<br/>This takes 3–6 seconds.</p>
+            <div className="regen-dots"><div className="rdot"/><div className="rdot"/><div className="rdot"/></div>
+          </div>
+        </div>
+      )}
+
+      {/* Regeneration error banner */}
+      {regenError && (
+        <div className="regen-error-banner">
+          <AlertTriangle size={16} />
+          <span>{regenError}</span>
+          <button className="regen-retry-inline" onClick={handleRegenerate}>Try Again</button>
+          <button className="regen-dismiss" onClick={() => setRegenError(null)}>✕</button>
+        </div>
+      )}
+
       {/* Header Row */}
       <div className="page-header-row">
         <div>
           <h1 className="page-title">Session: Deep Analysis Feedback</h1>
           <p className="page-subtitle">Synthesized insights across your architectural communication journey.</p>
         </div>
-        <div className="date-selector">
-          <Calendar size={16} />
-          <span>
-            {data?.started_at 
-              ? new Date(data.started_at).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })
-              : new Date().toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })
-            }
-            {' • '}
-            {(() => {
-              if (!data?.started_at || !data?.ended_at) return 'In Progress';
-              const start = new Date(data.started_at).getTime();
-              const end = new Date(data.ended_at).getTime();
-              const mins = Math.round((end - start) / 60000);
-              return `${mins}m`;
-            })()}
-          </span>
-          <ChevronDown size={14} />
+        <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+          <button
+            className={`btn-regenerate${isRegenerating ? ' btn-regenerate--loading' : ''}`}
+            onClick={handleRegenerate}
+            disabled={isRegenerating}
+            title="Re-run AI analysis"
+          >
+            <RefreshCw size={14} className={isRegenerating ? 'spin-icon' : ''} />
+            {isRegenerating ? 'Regenerating...' : 'Regenerate Analysis'}
+          </button>
+          <div className="date-selector">
+            <Calendar size={16} />
+            <span>
+              {data?.started_at 
+                ? new Date(data.started_at).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })
+                : new Date().toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })
+              }
+              {' • '}
+              {(() => {
+                if (!data?.started_at || !data?.ended_at) return 'In Progress';
+                const start = new Date(data.started_at).getTime();
+                const end = new Date(data.ended_at).getTime();
+                const mins = Math.round((end - start) / 60000);
+                return `${mins}m`;
+              })()}
+            </span>
+            <ChevronDown size={14} />
+          </div>
         </div>
       </div>
+
+      {/* ── No Feedback Card (prominent retry UI when feedback is absent) ── */}
+      {feedbackMissing && (
+        <div className="no-feedback-card">
+          <div className="no-feedback-icon">⚠️</div>
+          <div className="no-feedback-body">
+            <h3 className="no-feedback-title">AI Analysis Not Available</h3>
+            <p className="no-feedback-desc">
+              The AI could not generate feedback for this session automatically.
+              {retryCount > 0 && (
+                <span className="retry-count-label"> ({retryCount} attempt{retryCount > 1 ? 's' : ''} made)</span>
+              )}
+            </p>
+            {retryCount >= 3 && (
+              <p className="retry-exhausted">
+                Multiple retries failed. Gemini may be temporarily unavailable — try again in a few minutes.
+              </p>
+            )}
+          </div>
+          <button
+            className={`btn-regenerate no-feedback-btn${isRegenerating ? ' btn-regenerate--loading' : ''}`}
+            onClick={handleRegenerate}
+            disabled={isRegenerating}
+          >
+            <RefreshCw size={15} className={isRegenerating ? 'spin-icon' : ''} />
+            {isRegenerating ? 'Generating...' : retryCount === 0 ? 'Generate Analysis' : 'Retry Analysis'}
+          </button>
+        </div>
+      )}
 
       {/* Top Metrics */}
       <div className="metrics-row">

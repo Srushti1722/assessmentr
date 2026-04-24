@@ -15,6 +15,9 @@ import {
   Menu,
   LogOut,
   Check,
+  Zap,
+  Shield,
+  Flame,
 } from 'lucide-react';
 import { createClient } from '@/lib/supabase/client';
 import { resumeService } from '@/src/services/resumeService';
@@ -22,6 +25,21 @@ import { interviewService } from '@/src/services/interviewService';
 import Navbar from '@/components/Navbar';
 import { ROLE_JDS, ROLE_GROUPS } from './roleData';
 import './interview-setup.css';
+
+// Constants
+const DIFFICULTY_OPTIONS = [
+  { value: 'easy' as const,   label: 'Easy',   icon: Shield, description: 'Fundamentals & basics',  color: '#34d399', bg: 'rgba(52,211,153,0.08)',   glow: 'rgba(52,211,153,0.22)' },
+  { value: 'medium' as const, label: 'Medium', icon: Zap,    description: 'Intermediate concepts', color: '#fbbf24', bg: 'rgba(251,191,36,0.08)',  glow: 'rgba(251,191,36,0.22)' },
+  { value: 'hard' as const,   label: 'Hard',   icon: Flame,  description: 'Senior-level depth',   color: '#f87171', bg: 'rgba(248,113,113,0.08)', glow: 'rgba(248,113,113,0.22)' },
+];
+
+type Difficulty = 'easy' | 'medium' | 'hard';
+
+const TOPIC_OPTIONS = [
+  'Algorithms', 'Data Structures', 'System Design', 'OOP Design',
+  'Databases', 'Operating Systems', 'Networking', 'JavaScript',
+  'Python', 'React', 'APIs & REST', 'Concurrency',
+];
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 interface UserMeta {
@@ -49,6 +67,10 @@ export default function InterviewSetupPage() {
   const [pastResumes, setPastResumes] = useState<any[]>([]);
   const [loadingResumes, setLoadingResumes] = useState(true);
   const [selectedPastResumeId, setSelectedPastResumeId] = useState<string | null>(null);
+
+  // Interview configuration
+  const [difficulty, setDifficulty] = useState<Difficulty>('medium');
+  const [focusTopics, setFocusTopics] = useState<string[]>([]);
 
   // UI
   const [starting, setStarting] = useState(false);
@@ -180,7 +202,8 @@ export default function InterviewSetupPage() {
       const sessionData = await interviewService.createSession({
         resumeId: (resumeId as string | null),
         jobTargetId: (jobTargetId as string | null),
-        difficulty: 'medium',
+        difficulty,
+        focusTopics: focusTopics.map(t => t.toLowerCase().replace(/[^a-z0-9]+/g, '_')),
       });
 
       const sessionId = sessionData.session.id;
@@ -325,6 +348,62 @@ export default function InterviewSetupPage() {
                     })}
                   </div>
                 </div>
+              )}
+            </div>
+
+            {/* ── Card 3: Interview Configuration ── */}
+            <div className="setup-card">
+              <span className="card-label">Interview Configuration</span>
+
+              <p className="config-section-label">Difficulty Level</p>
+              <div className="difficulty-grid">
+                {DIFFICULTY_OPTIONS.map(({ value, label, icon: Icon, description, color, bg, glow }) => (
+                  <button
+                    key={value}
+                    type="button"
+                    className={`difficulty-card${difficulty === value ? ' active' : ''}`}
+                    style={{ '--diff-color': color, '--diff-bg': bg, '--diff-glow': glow } as React.CSSProperties}
+                    onClick={() => setDifficulty(value)}
+                  >
+                    <Icon size={20} />
+                    <span className="diff-label">{label}</span>
+                    <span className="diff-desc">{description}</span>
+                    {difficulty === value && <Check size={13} className="diff-check" />}
+                  </button>
+                ))}
+              </div>
+
+              <p className="config-section-label" style={{ marginTop: '24px' }}>
+                Focus Topics <span className="config-optional">(optional)</span>
+              </p>
+              <div className="topic-chips">
+                {TOPIC_OPTIONS.map(topic => {
+                  const isSelected = focusTopics.includes(topic);
+                  return (
+                    <button
+                      key={topic}
+                      type="button"
+                      className={`topic-chip${isSelected ? ' selected' : ''}`}
+                      onClick={() =>
+                        setFocusTopics(prev =>
+                          isSelected ? prev.filter(t => t !== topic) : [...prev, topic]
+                        )
+                      }
+                    >
+                      {isSelected && <Check size={11} />}
+                      {topic}
+                    </button>
+                  );
+                })}
+              </div>
+              {focusTopics.length > 0 && (
+                <button
+                  type="button"
+                  className="clear-topics-btn"
+                  onClick={() => setFocusTopics([])}
+                >
+                  <X size={11} /> Clear all
+                </button>
               )}
             </div>
 

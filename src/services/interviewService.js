@@ -130,5 +130,50 @@ export const interviewService = {
 
         if (!res.ok) throw new Error('Failed to get session details');
         return await res.json();
-    }
+    },
+
+    /**
+     * Get AI feedback for a completed session.
+     * Returns 404 if feedback hasn't been generated yet.
+     */
+    async getFeedback(sessionId) {
+        if (!sessionId) throw new Error('Session ID is required');
+        const token = authService.getToken();
+
+        const res = await fetch(`${API_URL}/interview/${sessionId}/feedback`, {
+            headers: { 'Authorization': `Bearer ${token}` },
+        });
+
+        if (res.status === 404) {
+            const err = new Error('Feedback not yet generated');
+            err.status = 404;
+            throw err;
+        }
+        if (!res.ok) throw new Error(`Feedback API returned ${res.status}`);
+        return await res.json();
+    },
+
+    /**
+     * Re-run Gemini feedback generation for a completed session.
+     * Deletes existing feedback (if any) and re-generates it.
+     * Session must be in 'completed' status.
+     */
+    async regenerateFeedback(sessionId) {
+        if (!sessionId) throw new Error('Session ID is required');
+        const token = authService.getToken();
+
+        const res = await fetch(`${API_URL}/interview/${sessionId}/feedback/regenerate`, {
+            method: 'POST',
+            headers: { 
+                'Authorization': `Bearer ${token}`,
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({}) // Send empty body to satisfy backend requirements
+        });
+
+        if (res.status === 400) throw new Error('Interview must be completed before generating feedback.');
+        if (res.status === 500) throw new Error('AI analysis temporarily unavailable. Try again in a moment.');
+        if (!res.ok) throw new Error(`Regenerate API returned ${res.status}`);
+        return await res.json();
+    },
 };

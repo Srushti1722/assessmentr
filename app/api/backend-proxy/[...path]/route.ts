@@ -35,6 +35,9 @@ async function proxyRequest(request: NextRequest, pathSegments: string[]) {
     const headers = new Headers(request.headers);
     headers.delete('host');
     headers.delete('connection');
+    headers.delete('cookie'); // Don't forward Supabase cookies to the core backend
+    headers.delete('origin'); // Avoid CORS issues on the core backend
+    headers.delete('referer');
     headers.set('host', new URL(currentUrl).host);
 
     try {
