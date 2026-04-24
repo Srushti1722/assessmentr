@@ -59,12 +59,20 @@ export default function AuthPage() {
     if (error) {
       setError(error.message);
     } else {
-      // Also register and login to the backend
-      const token = await authService.loginToBackend(email, password);
-      if (token) {
-        window.location.href = '/interview-setup';
-      } else {
-        setError('Account created (Supabase), but failed to sync with Backend. Please try signing in.');
+      try {
+        // 1. Register on the backend
+        await authService.registerUser(email, password, name);
+        
+        // 2. Login to get the backend Bearer token
+        const token = await authService.loginToBackend(email, password);
+        if (token) {
+          window.location.href = '/interview-setup';
+        } else {
+          setError('Account created (Supabase), but failed to sync session with Backend. Please try signing in.');
+        }
+      } catch (err: any) {
+        console.error('[handleSignUp] Backend sync error:', err);
+        setError(`Supabase account created, but Backend registration failed: ${err.message}. Please try signing in.`);
       }
     }
     setLoading(false);

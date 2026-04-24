@@ -11,9 +11,13 @@ export const authService = {
             });
             
             if (res.ok) {
-                const { access_token } = await res.json();
-                localStorage.setItem('backend_token', access_token);
-                return access_token;
+                const data = await res.json();
+                // Handle both documented 'token' and common 'access_token' names
+                const token = data.token || data.access_token;
+                if (token) {
+                    localStorage.setItem('backend_token', token);
+                    return token;
+                }
             }
             
             return null;
@@ -48,7 +52,12 @@ export const authService = {
                 const errorData = await res.json().catch(() => ({}));
                 throw new Error(errorData.detail || 'Registration failed');
             }
-            return await res.json();
+            const data = await res.json();
+            const token = data.token || data.access_token;
+            if (token) {
+                localStorage.setItem('backend_token', token);
+            }
+            return data;
         } catch (err) {
             console.error('[authService] Backend registration failed:', err);
             throw err;
