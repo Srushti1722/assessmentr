@@ -809,15 +809,17 @@ body {
     }
 
     .waveform-container {
-        position: relative;
-        top: 0;
-        left: 0;
-        transform: none;
-        margin-top: 60px; /* Space for the speaking label */
+        position: relative !important;
+        top: 0 !important;
+        left: 0 !important;
+        transform: none !important;
+        margin: 60px auto 0 !important; /* Center it */
+        display: flex !important;
     }
 
     .mic-area {
-        margin-top: 0;
+        margin-top: 0 !important;
+        position: relative !important;
     }
 
     .left-panel {
