@@ -62,6 +62,7 @@ export default function InterviewSetupPage() {
 
   // JD
   const [jdText, setJdText] = useState('');
+  const [companyName, setCompanyName] = useState('');
   const [isAutoFilled, setIsAutoFilled] = useState(false);
   const [selectedRole, setSelectedRole] = useState('');
   const [pastResumes, setPastResumes] = useState<any[]>([]);
@@ -188,7 +189,7 @@ export default function InterviewSetupPage() {
           console.log('Creating job target profile for role:', selectedRole);
           const jobTargetData = await resumeService.createJobTarget(
             selectedRole || 'software-engineer', // jobTitle
-            'Assessmentr',                        // company (placeholder)
+            companyName || 'Assessmentr',        // company
             jdText                               // jobDescription
           );
           jobTargetId = jobTargetData.profileId || jobTargetData.job_target_id || jobTargetData.id;
@@ -430,6 +431,19 @@ export default function InterviewSetupPage() {
               {/* Or divider */}
               <div className="or-divider">
                 <span>or</span>
+              </div>
+
+              {/* Company Input */}
+              <label htmlFor="company-input" className="role-label" style={{ marginTop: '24px' }}>Target Company / Tier</label>
+              <div className="input-field-wrapper" style={{ marginBottom: '24px' }}>
+                <input
+                  id="company-input"
+                  type="text"
+                  className="company-input"
+                  placeholder="e.g. Google, Microsoft, or Tier 1 Tech"
+                  value={companyName}
+                  onChange={(e) => setCompanyName(e.target.value)}
+                />
               </div>
 
               {/* Role select */}

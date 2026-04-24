@@ -517,7 +517,8 @@ button {
   position: relative;
 }
 
-.role-select {
+.role-select,
+.company-input {
   width: 100%;
   appearance: none;
   -webkit-appearance: none;
@@ -532,7 +533,13 @@ button {
   transition: border-color 0.2s, box-shadow 0.2s;
 }
 
-.role-select:focus {
+.company-input {
+  cursor: text;
+  padding-right: 16px;
+}
+
+.role-select:focus,
+.company-input:focus {
   outline: none;
   border-color: rgba(129, 236, 255, 0.30);
   box-shadow: 0 0 0 3px rgba(129, 236, 255, 0.08);
