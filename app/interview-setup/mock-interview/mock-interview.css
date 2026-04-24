@@ -795,47 +795,90 @@ body {
         height: auto;
         min-height: calc(100vh - 56px);
         overflow-y: auto;
+        overflow-x: hidden;
     }
 
     .right-panel {
         width: 100%;
         height: auto;
-        min-height: 400px;
-        padding-bottom: 40px;
+        min-height: auto;
+        padding: 40px 20px;
         border-top: 1px solid rgba(255, 255, 255, 0.06);
+        justify-content: flex-start;
+        gap: 32px;
+    }
+
+    .waveform-container {
+        position: relative;
+        top: 0;
+        left: 0;
+        transform: none;
+        margin-top: 60px; /* Space for the speaking label */
+    }
+
+    .mic-area {
+        margin-top: 0;
     }
 
     .left-panel {
         border-right: none;
-        height: 60vh;
-        min-height: 450px;
+        height: auto;
+        min-height: 500px;
+        overflow-x: hidden;
+    }
+
+    .page-header {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 12px;
+    }
+
+    .header-right {
+        width: 100%;
+        justify-content: space-between;
     }
 
     .page-title {
-        font-size: 1.25rem;
+        font-size: 1.2rem;
+        max-width: 100%;
+        white-space: normal;
     }
 }
 
 @media (max-width: 480px) {
     .left-panel {
-        padding: 16px;
+        padding: 20px 16px;
     }
 
     .navbar {
-        padding: 0 16px;
+        padding: 0 12px;
+    }
+
+    .nav-logo {
+        margin-right: 12px;
+        font-size: 0.95rem;
+    }
+
+    .nav-profile {
+        padding: 4px;
+    }
+
+    .nav-profile-info {
+        display: none;
     }
 
     .timer-block {
         padding: 6px 12px;
-        min-width: 100px;
+        min-width: 90px;
     }
 
     .timer-value {
-        font-size: 1.1rem;
+        font-size: 1rem;
     }
 
-    .nav-links {
-        display: none;
+    .btn-end {
+        padding: 8px 14px;
+        font-size: 0.75rem;
     }
 }
 
