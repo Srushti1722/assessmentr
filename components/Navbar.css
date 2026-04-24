@@ -164,8 +164,12 @@
 }
 
 @media (max-width: 900px) {
-    .logo-text, .profile-name, .nav-item span {
-        display: none;
+    .global-navbar {
+        height: 60px;
+    }
+
+    .logo-text-lowercase, .profile-name, .nav-item span {
+        display: none !important;
     }
     
     .nav-container {
@@ -178,7 +182,10 @@
         justify-content: center;
     }
 
-    .nav-links {
+    .nav-links.mobile-show {
+        display: flex !important;
+        flex: 1;
+        justify-content: center;
         gap: 8px;
     }
 
