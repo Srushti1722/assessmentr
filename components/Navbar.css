@@ -169,7 +169,13 @@
         height: 60px;
     }
 
-    .logo-text-lowercase, .profile-name, .nav-item span {
+    .logo-text-lowercase {
+        font-family: var(--font-display) !important;
+        font-weight: 800 !important;
+        font-size: 1.1rem !important; /* Slightly smaller for mobile header space */
+    }
+
+    .profile-name, .nav-item span {
         display: none !important;
     }
     
