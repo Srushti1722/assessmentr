@@ -81,3 +81,49 @@ body::before {
   pointer-events: none;
   z-index: 0;
 }
+
+/* ── Mobile Footer ── */
+.mobile-only-footer {
+  display: none;
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  height: 64px;
+  background: rgba(10, 15, 15, 0.9);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border-top: 1px solid rgba(255, 255, 255, 0.08);
+  padding: 0 40px;
+  justify-content: space-around;
+  align-items: center;
+  z-index: 999;
+}
+
+.mobile-footer-btn {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  background: none;
+  border: none;
+  color: #888;
+  font-size: 0.7rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: color 0.2s;
+}
+
+.mobile-footer-btn:hover {
+  color: #fff;
+}
+
+@media (max-width: 900px) {
+  .mobile-only-footer {
+    display: flex;
+  }
+  
+  .layout-wrapper {
+    padding-bottom: 64px; /* Space for the fixed footer */
+  }
+}

@@ -49,7 +49,7 @@ export default function Navbar({ activePage }: NavbarProps) {
         </div>
 
         {/* Navigation Links */}
-        <div className="nav-links">
+        <div className="nav-links mobile-show">
           <button 
             className={`nav-item ${activePage === 'interview' ? 'active' : ''}`}
             onClick={() => router.push('/interview-setup')}
@@ -77,7 +77,7 @@ export default function Navbar({ activePage }: NavbarProps) {
 
         {/* Right Section: Icons + Profile */}
         <div className="nav-right">
-          <div className="nav-actions">
+          <div className="nav-actions desktop-only">
             <button className="icon-btn" title="Settings">
               <Settings size={18} />
             </button>
