@@ -65,7 +65,8 @@ body {
   display: flex;
   flex-direction: column;
   position: relative;
-  overflow-x: hidden;
+  overflow-x: hidden !important;
+  width: 100vw !important;
 }
 
 /* Subtle radial glow in background like image */

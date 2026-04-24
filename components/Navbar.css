@@ -177,8 +177,8 @@
     }
     
     .nav-item {
-        padding: 8px;
-        min-width: 44px;
+        padding: 6px;
+        min-width: 36px;
         justify-content: center;
     }
 
@@ -186,24 +186,34 @@
         display: flex !important;
         flex: 1;
         justify-content: center;
-        gap: 8px;
+        gap: 4px;
+        margin: 0 8px;
     }
 
     .nav-right {
-        gap: 12px;
+        gap: 8px;
+        flex-shrink: 0;
+    }
+
+    .nav-profile-chip {
+        padding: 2px;
+        gap: 0;
+        min-width: 32px;
+        justify-content: center;
+        background: transparent;
+        border: none;
+    }
+
+    .profile-avatar {
+        margin: 0;
+    }
+
+    .profile-details {
+        display: none !important;
     }
 
     .desktop-only {
         display: none !important;
-    }
-
-    .nav-profile-chip {
-        padding: 4px;
-        gap: 4px;
-    }
-
-    .dropdown-arrow {
-        display: none;
     }
 }
 @media (min-width: 901px) {
