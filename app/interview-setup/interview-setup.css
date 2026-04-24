@@ -723,29 +723,29 @@ button {
     display: none;
   }
 
-  .hamburger {
-    display: flex;
-  }
-
-  .user-location {
-    display: none;
+  .setup-heading {
+    font-size: 1.8rem;
   }
 
   .setup-wrapper {
-    padding: 36px 16px 64px;
+    padding: 32px 16px 64px;
   }
 
   .setup-card {
-    padding: 20px;
+    padding: 18px;
   }
 
-  .footer-container {
-    flex-direction: column;
-    text-align: center;
+  .difficulty-grid {
+    grid-template-columns: 1fr;
   }
 
-  .footer-links {
-    justify-content: center;
+  .library-resumes {
+    grid-template-columns: 1fr;
+  }
+
+  .btn-start {
+    padding: 14px 20px;
+    font-size: 0.95rem;
   }
 }
 
