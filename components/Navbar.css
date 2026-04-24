@@ -34,10 +34,11 @@
 }
 
 .logo-text-lowercase {
+    font-family: var(--font-display);
     font-size: 1.35rem;
     font-weight: 800;
     color: #26d0ce;
-    letter-spacing: -0.04em;
+    letter-spacing: -0.03em;
     text-transform: lowercase;
     transition: opacity 0.2s;
 }
